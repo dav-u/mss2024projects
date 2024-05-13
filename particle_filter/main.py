@@ -16,13 +16,13 @@ cv.resizeWindow(WEBCAM_WINDOW, 600, 600)
 lower_bound_picker = ColorpickerWindow('Lower bound color picker', initial_color=(0, 100, 70), initial_pos=(1200, 0))
 upper_bound_picker = ColorpickerWindow('Upper bound color picker', initial_color=(30, 255, 255), initial_pos=(1200, 400))
 
-image: cv.Mat = None
+original_image: cv.Mat = None
 
 def webcam_click(event, x, y, flags, param):
   if event != cv.EVENT_LBUTTONDOWN:
     return
 
-  color = image[y, x]
+  color = original_image[y, x]
   lower_bound_picker.set_to_bgr(color, offset=-20)
   upper_bound_picker.set_to_bgr(color, offset=+20)
 
@@ -44,7 +44,8 @@ while True:
   lower_color_bound = lower_bound_picker.get_hsv()
   upper_color_bound = upper_bound_picker.get_hsv()
 
-  _, image = capture.read()
+  _, original_image = capture.read()
+  image = original_image.copy()
 
   hsv_image = cv.cvtColor(image, cv.COLOR_BGR2HSV)
   mask = cv.inRange(hsv_image, lower_color_bound, upper_color_bound)

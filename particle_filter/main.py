@@ -64,6 +64,8 @@ while True:
   contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
   mask_count = cv.countNonZero(mask)
 
+  if mask_count == 0: continue
+
   cv.drawContours(image, contours, -1, (0,255,0), 3)
 
   measurements = []
@@ -95,6 +97,8 @@ while True:
   closest_measurements_x = x_indices[y_pos_int, x_pos_int]
   closest_measurements = np.array([closest_measurements_x, closest_measurements_y]).T
   distances = distances[y_pos_int, x_pos_int]
+
+  P[:, :2] += 0.1 * (closest_measurements - P[:, :2])
 
   for x, y in closest_measurements:
     cv.circle(image, (x, y), 4, (255, 0, 255), -1)

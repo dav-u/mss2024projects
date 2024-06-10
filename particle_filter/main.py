@@ -87,17 +87,18 @@ while True:
   # bei passing `return_indices=True` we not only get the distance to the nearest measurement
   # but also the index of the nearest measurement for each pixel
   distances, indices = scipy.ndimage.distance_transform_edt(mask == 0, return_indices=True)
-  for particle in P:
-    x, y, vx, vy, _ = particle
-    x_int, y_int = (int(x), int(y))
-    distance = distances[y_int, x_int]
-    nearest_measurement = (indices[1][y_int, x_int], indices[0][y_int, x_int])
-    if nearest_measurement[0] == -1 or nearest_measurement[1] == -1: continue
+  # indices is of shape (2, height, width)
+  y_indices, x_indices = indices
+  x_pos_int = P[:, 0].astype('int')
+  y_pos_int = P[:, 1].astype('int')
+  closest_measurements_y = y_indices[y_pos_int, x_pos_int]
+  closest_measurements_x = x_indices[y_pos_int, x_pos_int]
+  closest_measurements = np.array([closest_measurements_x, closest_measurements_y]).T
+  distances = distances[y_pos_int, x_pos_int]
 
-    cv.circle(image, nearest_measurement, 10, (255, 0, 255), -1)
-    cv.line(image, (x_int, y_int), nearest_measurement, (255, 0, 255), 2)
-    #print("Particle at", (x, y), "has nearest measurement at", nearest_measurement)
-  
+  for x, y in closest_measurements:
+    cv.circle(image, (x, y), 4, (255, 0, 255), -1)
+
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)
 

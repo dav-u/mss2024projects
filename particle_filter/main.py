@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 from colorpicker_window import ColorpickerWindow
+import params
 
 # create windows and move them next to each other
 MASK_WINDOW = 'Mask'
@@ -38,6 +39,15 @@ if not capture.isOpened():
   print("Could not open camera")
   exit()
 
+image_height, image_width, _ = capture.read()[1].shape
+
+P = np.empty((params.N_particles, params.N_statedims + 1))
+P[:, 0] = np.random.randint(0, image_width, size=params.N_particles)
+P[:, 1] = np.random.randint(0, image_height, size=params.N_particles)
+P[:, 2] = np.random.randint(-10, 10, size=params.N_particles)
+P[:, 3] = np.random.randint(-10, 10, size=params.N_particles)
+P[:, 4] = 1.0/params.N_particles
+
 while True:
   upper_bound_picker.update()
   lower_bound_picker.update()
@@ -50,6 +60,7 @@ while True:
   hsv_image = cv.cvtColor(image, cv.COLOR_BGR2HSV)
   mask = cv.inRange(hsv_image, lower_color_bound, upper_color_bound)
   contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+  mask_count = cv.countNonZero(mask)
 
   cv.drawContours(image, contours, -1, (0,255,0), 3)
 
@@ -64,6 +75,11 @@ while True:
   # (x coordinate, y coordinate, weight)
   for (x, y, w) in measurements:
     cv.circle(image, (x, y), int(500 * w), (0, 255, 255), -1)
+
+  # visualize particles as little circles
+  for x, y, vx, vy, _ in P:
+    cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, -1)
+    
   
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)

@@ -64,6 +64,9 @@ while True:
   mask_count = cv.countNonZero(mask)
 
   if mask_count == 0: continue
+
+  measurements = np.argwhere(mask == 255)
+  measurements[:, [0, 1]] = measurements[:, [1, 0]] # swap the columns so each entry is (x, y) (not (y, x))
   
   # visualize particles as little circles
   for x, y, vx, vy, _ in P:
@@ -89,10 +92,14 @@ while True:
   # add noise
   P[:, :2] += np.random.normal(scale=params.PARTICLE_NOISE, size=(len(P), 2))
 
-  # redistribute some particles uniformly
+  # redistribute some particles to measurements
   number_to_redistribute = int(len(P) * params.PARTICLE_REDISTRIBUTION_FRACTION)
-  rand_ind = np.random.choice(np.arange(len(P)), size=number_to_redistribute, replace=False)
-  P[rand_ind, :2] = np.random.randint((0, 0), (image_width, image_height), size=(len(rand_ind), 2))
+  # create random indices for the particles that get overwritten and for the measurements
+  # we use to override the particles. One particle can only be overwritten once but a measurement
+  # can be taken multiple times
+  rand_particle_ind = np.random.choice(len(P), size=number_to_redistribute, replace=False)
+  rand_meas_ind = np.random.choice(len(measurements), size=number_to_redistribute, replace=True)
+  P[rand_particle_ind, :2] = measurements[rand_meas_ind]
 
   # clip particles so they do not leave the screen
   P[:, :2] = P[:, :2].clip((0, 0), (image_width-1, image_height-1))

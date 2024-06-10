@@ -58,15 +58,15 @@ while True:
   mask = cv.inRange(hsv_image, lower_color_bound, upper_color_bound)
   mask_count = cv.countNonZero(mask)
 
-  if mask_count == 0: continue
-
-  particle_filter.ingest_image_mask(mask)
-  particle_filter.visualize_particles(image)
-  particle_filter.calculate_closest_measurements()
-  particle_filter.measurement_update()
-  particle_filter.add_noise(params.PARTICLE_NOISE)
-  particle_filter.reseed_particles_to_measurements(params.PARTICLE_REDISTRIBUTION_FRACTION)
-  particle_filter.clip_particles()
+  if mask_count != 0:
+    particle_filter.ingest_image_mask(mask)
+    particle_filter.visualize_particles(image)
+    particle_filter.calculate_closest_measurements()
+    particle_filter.measurement_update()
+    particle_filter.prediction_update()
+    particle_filter.add_noise(params.PARTICLE_NOISE)
+    particle_filter.reseed_particles_to_measurements(params.PARTICLE_REDISTRIBUTION_FRACTION)
+    particle_filter.clip_particles()
 
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)

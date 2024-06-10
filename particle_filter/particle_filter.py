@@ -47,8 +47,18 @@ class ParticleFilter:
   
   def measurement_update(self):
     # update/correction
-    self.P[:, :2] += params.PARTICLE_FOLLOW_MEASUREMENT_SPEED * (self.closest_measurements - self.P[:, :2])
-    # TODO update velocity
+    directions = self.closest_measurements - self.P[:, :2]
+
+    # update position
+    self.P[:, :2] += params.PARTICLE_FOLLOW_MEASUREMENT_SPEED * directions
+
+    # update velocity
+    self.P[:, 2:4] = self.P[:, 2:4]*0.9 + directions*0.1
+
+  def prediction_update(self):
+    # x = x + vx
+    # y = y + vy
+    self.P[:, :2] += self.P[:, 2:4]
 
   def add_noise(self, std: float):
     """
@@ -76,4 +86,5 @@ class ParticleFilter:
   def visualize_particles(self, image: cv.Mat):
     # visualize particles as little circles
     for x, y, vx, vy, _ in self.P:
-      cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, -1)
+      cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, 1)
+      cv.line(image, (int(x), int(y)), (int(x+vx), int(y+vy)), params.VIS_PARTICLE_COLOR, 1)

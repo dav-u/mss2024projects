@@ -1,9 +1,8 @@
 import cv2 as cv
 import numpy as np
-import scipy.ndimage
 from colorpicker_window import ColorpickerWindow
 import params
-import scipy
+from particle_filter import ParticleFilter
 
 # create windows and move them next to each other
 MASK_WINDOW = 'Mask'
@@ -43,12 +42,8 @@ if not capture.isOpened():
 
 image_height, image_width, _ = capture.read()[1].shape
 
-P = np.empty((params.N_particles, params.N_statedims + 1))
-P[:, 0] = np.random.randint(0, image_width, size=params.N_particles)
-P[:, 1] = np.random.randint(0, image_height, size=params.N_particles)
-P[:, 2] = np.random.randint(-10, 10, size=params.N_particles)
-P[:, 3] = np.random.randint(-10, 10, size=params.N_particles)
-P[:, 4] = 1.0/params.N_particles
+
+particle_filter = ParticleFilter(image_width, image_height, params.N_particles)
 
 while True:
   upper_bound_picker.update()
@@ -65,44 +60,13 @@ while True:
 
   if mask_count == 0: continue
 
-  measurements = np.argwhere(mask == 255)
-  measurements[:, [0, 1]] = measurements[:, [1, 0]] # swap the columns so each entry is (x, y) (not (y, x))
-  
-  # visualize particles as little circles
-  for x, y, vx, vy, _ in P:
-    cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, -1)
-    
-  # where mask is zero we want a 1 and where mask is != 0 (255) we want a 0
-  # edt distance transform calculates the distance from each 1 to the nearest 0
-  # bei passing `return_indices=True` we not only get the distance to the nearest measurement
-  # but also the index of the nearest measurement for each pixel
-  distances, indices = scipy.ndimage.distance_transform_edt(mask == 0, return_indices=True)
-  # indices is of shape (2, height, width)
-  y_indices, x_indices = indices
-  x_pos_int = P[:, 0].astype('int')
-  y_pos_int = P[:, 1].astype('int')
-  closest_measurements_y = y_indices[y_pos_int, x_pos_int]
-  closest_measurements_x = x_indices[y_pos_int, x_pos_int]
-  closest_measurements = np.array([closest_measurements_x, closest_measurements_y]).T
-  distances = distances[y_pos_int, x_pos_int] # we currently do not need this
-
-  # update/correction
-  P[:, :2] += params.PARTICLE_FOLLOW_MEASUREMENT_SPEED * (closest_measurements - P[:, :2])
-
-  # add noise
-  P[:, :2] += np.random.normal(scale=params.PARTICLE_NOISE, size=(len(P), 2))
-
-  # redistribute some particles to measurements
-  number_to_redistribute = int(len(P) * params.PARTICLE_REDISTRIBUTION_FRACTION)
-  # create random indices for the particles that get overwritten and for the measurements
-  # we use to override the particles. One particle can only be overwritten once but a measurement
-  # can be taken multiple times
-  rand_particle_ind = np.random.choice(len(P), size=number_to_redistribute, replace=False)
-  rand_meas_ind = np.random.choice(len(measurements), size=number_to_redistribute, replace=True)
-  P[rand_particle_ind, :2] = measurements[rand_meas_ind]
-
-  # clip particles so they do not leave the screen
-  P[:, :2] = P[:, :2].clip((0, 0), (image_width-1, image_height-1))
+  particle_filter.ingest_image_mask(mask)
+  particle_filter.visualize_particles(image)
+  particle_filter.calculate_closest_measurements()
+  particle_filter.measurement_update()
+  particle_filter.add_noise(params.PARTICLE_NOISE)
+  particle_filter.reseed_particles_to_measurements(params.PARTICLE_REDISTRIBUTION_FRACTION)
+  particle_filter.clip_particles()
 
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)

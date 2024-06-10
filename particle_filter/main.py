@@ -81,19 +81,21 @@ while True:
   closest_measurements_y = y_indices[y_pos_int, x_pos_int]
   closest_measurements_x = x_indices[y_pos_int, x_pos_int]
   closest_measurements = np.array([closest_measurements_x, closest_measurements_y]).T
-  distances = distances[y_pos_int, x_pos_int]
+  distances = distances[y_pos_int, x_pos_int] # we currently do not need this
 
-  # Messkorrektur
-  P[:, :2] += 0.1 * (closest_measurements - P[:, :2])
+  # update/correction
+  P[:, :2] += params.PARTICLE_FOLLOW_MEASUREMENT_SPEED * (closest_measurements - P[:, :2])
 
   # add noise
-  P[:, :2] += np.random.normal(scale=5.0, size=(len(P), 2))
+  P[:, :2] += np.random.normal(scale=params.PARTICLE_NOISE, size=(len(P), 2))
+
+  # redistribute some particles uniformly
+  number_to_redistribute = int(len(P) * params.PARTICLE_REDISTRIBUTION_FRACTION)
+  rand_ind = np.random.choice(np.arange(len(P)), size=number_to_redistribute, replace=False)
+  P[rand_ind, :2] = np.random.randint((0, 0), (image_width, image_height), size=(len(rand_ind), 2))
 
   # clip particles so they do not leave the screen
   P[:, :2] = P[:, :2].clip((0, 0), (image_width-1, image_height-1))
-
-  for x, y in closest_measurements:
-    cv.circle(image, (x, y), 4, (255, 0, 255), -1)
 
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)

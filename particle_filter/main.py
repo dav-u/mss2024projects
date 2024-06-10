@@ -1,7 +1,9 @@
 import cv2 as cv
 import numpy as np
+import scipy.ndimage
 from colorpicker_window import ColorpickerWindow
 import params
+import scipy
 
 # create windows and move them next to each other
 MASK_WINDOW = 'Mask'
@@ -80,6 +82,21 @@ while True:
   for x, y, vx, vy, _ in P:
     cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, -1)
     
+  # where mask is zero we want a 1 and where mask is != 0 (255) we want a 0
+  # edt distance transform calculates the distance from each 1 to the nearest 0
+  # bei passing `return_indices=True` we not only get the distance to the nearest measurement
+  # but also the index of the nearest measurement for each pixel
+  distances, indices = scipy.ndimage.distance_transform_edt(mask == 0, return_indices=True)
+  for particle in P:
+    x, y, vx, vy, _ = particle
+    x_int, y_int = (int(x), int(y))
+    distance = distances[y_int, x_int]
+    nearest_measurement = (indices[1][y_int, x_int], indices[0][y_int, x_int])
+    if nearest_measurement[0] == -1 or nearest_measurement[1] == -1: continue
+
+    cv.circle(image, nearest_measurement, 10, (255, 0, 255), -1)
+    cv.line(image, (x_int, y_int), nearest_measurement, (255, 0, 255), 2)
+    #print("Particle at", (x, y), "has nearest measurement at", nearest_measurement)
   
   cv.imshow(MASK_WINDOW, mask)
   cv.imshow(WEBCAM_WINDOW, image)

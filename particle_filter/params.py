@@ -1,4 +1,4 @@
-N_particles = 200
+N_particles = 2000
 N_statedims = 4
 
 # parameters for visualization

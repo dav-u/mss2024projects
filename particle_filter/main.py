@@ -61,25 +61,10 @@ while True:
 
   hsv_image = cv.cvtColor(image, cv.COLOR_BGR2HSV)
   mask = cv.inRange(hsv_image, lower_color_bound, upper_color_bound)
-  contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
   mask_count = cv.countNonZero(mask)
 
   if mask_count == 0: continue
-
-  cv.drawContours(image, contours, -1, (0,255,0), 3)
-
-  measurements = []
-  for contour in contours:
-    x, y, w, h = cv.boundingRect(contour)
-    # weight = (w*h) / (image.shape[0] * image.shape[1])
-    weight = cv.contourArea(contour) / (image.shape[0] * image.shape[1])
-    measurements.append((x+w//2, y+h//2, weight))
-    cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
   
-  # (x coordinate, y coordinate, weight)
-  for (x, y, w) in measurements:
-    cv.circle(image, (x, y), int(500 * w), (0, 255, 255), -1)
-
   # visualize particles as little circles
   for x, y, vx, vy, _ in P:
     cv.circle(image, (int(x), int(y)), params.VIS_PARTICLE_RADIUS, params.VIS_PARTICLE_COLOR, -1)

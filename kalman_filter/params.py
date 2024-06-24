@@ -45,3 +45,7 @@ H_ground_truth = np.array([[0.98, 0.0],
 
 R_ground_truth = np.array([[100.0, 0.0],
                            [0.0,       1.0]])
+
+# Kalman parameters (our idea of the world)
+#____________________________________________________________________________
+
